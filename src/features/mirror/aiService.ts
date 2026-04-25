@@ -1,78 +1,85 @@
-import { GoogleGenAI } from '@google/genai';
-import { db } from '../../lib/firebase';
-import type { Concept, DialogueTurn, SocraticResponse } from '../../types/mirror';
+import type { SocraticResponse, ConceptStatus, DialogueTurn } from '../../types/mirror';
 import { buildSocraticPrompt, parseSocraticResponse } from './promptBuilder';
-import type { ConceptStatus } from '../../types/mirror';
+import { CONCEPTS_BY_ID } from './concepts';
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY as string;
-const genAI = new GoogleGenAI({ apiKey });
+const apiKey = import.meta.env.VITE_VERTEX_API_KEY;
+const project = import.meta.env.VITE_VERTEX_PROJECT;
+const location = import.meta.env.VITE_VERTEX_LOCATION || 'global';
 
-// Silence unused import lint — db is imported for future Firestore triggers
-void db;
+const isDemoMode = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  return new URLSearchParams(window.location.search).get('demo') === '1';
+};
 
-// ─── Demo mode seed ───────────────────────────────────────────────────────────
-// ?demo=1 returns a deterministic response without hitting the network.
-
-const DEMO_RESPONSES: Record<number, SocraticResponse> = {
+const DEMO_ARC: Record<number, SocraticResponse> = {
   0: {
-    message:
-      "Got it. Quick question — if you A/B test two prompts and Prompt A gets higher user ratings but Prompt B has lower hallucination rate on a holdout set, which one ships?",
-    updatedStatus: 'cracked',
+    message: "You said 'user testing for prompts.' Quick probe: when you A/B two prompts and users prefer A, but offline accuracy says B is better — which do you ship, and why?",
+    updatedStatus: 'shaky',
     conceptComplete: false,
   },
   1: {
-    message:
-      "Closer. But which metric are you optimising for — preference or correctness? And who decides that in your org?",
+    message: "Good — you're seeing the gap. So if preference and accuracy disagree, what does that tell you about what 'eval' actually means for an LLM product?",
     updatedStatus: 'shaky',
     conceptComplete: false,
   },
   2: {
-    message:
-      "Right — user feedback measures preference, offline evals measure correctness. Real teams use both and the PM decides the trade-off based on risk tolerance.",
+    message: "Exactly. LLM evals aren't one number — they're a portfolio: offline benchmarks, human preference, and production telemetry. You'd weight them by what the user actually does with the output. You've got this.",
     updatedStatus: 'solid',
     conceptComplete: true,
-    keySynthesis:
-      "LLM evals are not one thing — user feedback and offline accuracy evals measure different things. A PM owns the decision of which to prioritise per feature risk.",
+    keySynthesis: 'LLM evals are a portfolio: offline benchmarks + human preference + production telemetry, weighted by user task.',
   },
 };
 
-function isDemoMode(): boolean {
-  return new URLSearchParams(window.location.search).get('demo') === '1';
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+async function callVertex(
+  systemInstruction: string,
+  history: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }>,
+  userMessage: string
+): Promise<string> {
+  if (!apiKey || !project) {
+    throw new Error('Vertex not configured. Check VITE_VERTEX_API_KEY and VITE_VERTEX_PROJECT in .env.local');
+  }
+  const url = `https://aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/google/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const contents = [
+    ...history,
+    { role: 'user' as const, parts: [{ text: userMessage }] },
+  ];
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: systemInstruction }] },
+      contents,
+      generationConfig: { responseMimeType: 'application/json', temperature: 0.7 },
+    }),
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Vertex API error ${res.status}: ${errText}`);
+  }
+  const data = await res.json();
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error('Empty response from Vertex');
+  return text;
 }
 
-// ─── Core AI call ─────────────────────────────────────────────────────────────
-
 export async function getSocraticResponse(
-  concept: Concept,
+  conceptId: string,
   userMessage: string,
   history: DialogueTurn[],
-  currentStatus: ConceptStatus,
+  currentStatus: ConceptStatus
 ): Promise<SocraticResponse> {
-  // Validate input before touching any external service
-  const trimmed = userMessage.trim();
-  if (!trimmed) throw new Error('User message cannot be empty');
-  if (trimmed.length > 2000) throw new Error('Message too long (max 2000 chars)');
-
-  // Demo mode — guaranteed working scenario without network
   if (isDemoMode()) {
-    const turnIndex = Math.min(history.length, 2);
-    await new Promise((r) => setTimeout(r, 800)); // simulate latency
-    return DEMO_RESPONSES[turnIndex];
+    await sleep(800);
+    const turnIndex = history.filter(t => t.role === 'user').length;
+    return DEMO_ARC[Math.min(turnIndex, 2)] ?? DEMO_ARC[2];
   }
 
-  const { systemInstruction, history: geminiHistory, userMessage: currentUserMessage } =
-    buildSocraticPrompt({ concept, userMessage: trimmed, history, currentStatus });
+  const concept = CONCEPTS_BY_ID[conceptId];
+  if (!concept) throw new Error('Unknown concept: ' + conceptId);
 
-  const chat = genAI.chats.create({
-    model: 'gemini-2.5-flash',
-    config: {
-      systemInstruction,
-      responseMimeType: 'application/json',
-    },
-    history: geminiHistory,
-  });
-
-  const result = await chat.sendMessage({ message: currentUserMessage });
-  const raw = result.text ?? '{}';
+  const built = buildSocraticPrompt({ concept, userMessage, history, currentStatus });
+  const raw = await callVertex(built.systemInstruction, built.history, built.userMessage);
   return parseSocraticResponse(raw);
 }

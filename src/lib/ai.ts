@@ -2,28 +2,30 @@ import { GoogleGenAI } from '@google/genai';
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-if (!apiKey) {
-  console.warn('Gemini API key missing — check .env.local');
+let client: GoogleGenAI | null = null;
+
+if (apiKey) {
+  try {
+    client = new GoogleGenAI({ apiKey });
+  } catch (err) {
+    console.warn('Gemini init failed:', err);
+  }
+} else {
+  console.info('Gemini API key missing — use ?demo=1 for offline demo');
 }
 
-const genAI = new GoogleGenAI({ apiKey: apiKey ?? '' });
-
-/** Simple text completion. */
-export async function ask(prompt: string, model = 'gemini-2.5-flash'): Promise<string> {
-  const result = await genAI.models.generateContent({
-    model,
-    contents: prompt,
-  });
-  return result.text ?? '';
-}
-
-/** Structured JSON output. */
-export async function askJSON<T = unknown>(prompt: string, model = 'gemini-2.5-flash'): Promise<T> {
-  const result = await genAI.models.generateContent({
-    model,
+export async function askJSON<T>(prompt: string): Promise<T> {
+  if (!client) {
+    throw new Error('Gemini client not configured. Add VITE_GEMINI_API_KEY to .env.local or use ?demo=1');
+  }
+  const response = await client.models.generateContent({
+    model: 'gemini-2.5-flash',
     contents: prompt,
     config: { responseMimeType: 'application/json' },
   });
-  const text = result.text ?? '{}';
+  const text = response.text;
+  if (!text) throw new Error('Empty response from Gemini');
   return JSON.parse(text) as T;
 }
+
+export { client };

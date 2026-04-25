@@ -1,8 +1,7 @@
-import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { initializeApp, type FirebaseApp } from 'firebase/app';
+import { getFirestore, type Firestore } from 'firebase/firestore';
 
-const firebaseConfig = {
+const config = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
@@ -11,9 +10,20 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const missing = Object.entries(firebaseConfig).filter(([_, v]) => !v).map(([k]) => k);
-if (missing.length) console.warn('Firebase config missing:', missing);
+const hasConfig = Boolean(config.apiKey && config.projectId);
 
-export const firebaseApp = initializeApp(firebaseConfig);
-export const db = getFirestore(firebaseApp);
-export const auth = getAuth(firebaseApp);
+let app: FirebaseApp | null = null;
+let db: Firestore | null = null;
+
+if (hasConfig) {
+  try {
+    app = initializeApp(config);
+    db = getFirestore(app);
+  } catch (err) {
+    console.warn('Firebase init failed, running offline:', err);
+  }
+} else {
+  console.info('Firebase config missing — running in offline mode');
+}
+
+export { app, db };
