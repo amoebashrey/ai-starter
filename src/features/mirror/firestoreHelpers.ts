@@ -1,51 +1,34 @@
-import {
-  doc,
-  getDoc,
-  setDoc,
-  serverTimestamp,
-} from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import type { ConceptProgress, SessionState } from '../../types/mirror';
 
-// ─── Firestore schema ─────────────────────────────────────────────────────────
-//   sessions/{sessionId}
-//     progress: Record<conceptId, ConceptProgress>
-//     updatedAt: serverTimestamp
-//
-// TODO (demo): Firestore rules allow read/write without auth for hackathon.
-//   In production, lock to authenticated user sessions.
-
-const sessionsCol = 'sessions';
-
-// ─── Load ─────────────────────────────────────────────────────────────────────
-
-export async function loadSession(
-  sessionId: string,
-): Promise<Pick<SessionState, 'progress'> | null> {
-  const ref = doc(db, sessionsCol, sessionId);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return null;
-
-  const data = snap.data() as { progress?: Record<string, ConceptProgress> };
-  return { progress: data.progress ?? {} };
+export async function loadSession(sessionId: string): Promise<SessionState | null> {
+  if (!db) return null;
+  try {
+    const ref = doc(db, 'sessions', sessionId);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return null;
+    return snap.data() as SessionState;
+  } catch (err) {
+    console.warn('Firestore load failed (offline?)', err);
+    return null;
+  }
 }
-
-// ─── Save (upsert single concept) ────────────────────────────────────────────
 
 export async function saveProgress(
   sessionId: string,
   conceptId: string,
-  progress: ConceptProgress,
+  progress: ConceptProgress
 ): Promise<void> {
-  const ref = doc(db, sessionsCol, sessionId);
-
-  // Merge so we don't overwrite other concepts in the same write
-  await setDoc(
-    ref,
-    {
-      [`progress.${conceptId}`]: progress,
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true },
-  );
+  if (!db) return;
+  try {
+    const ref = doc(db, 'sessions', sessionId);
+    await setDoc(
+      ref,
+      { sessionId, progress: { [conceptId]: progress } },
+      { merge: true }
+    );
+  } catch (err) {
+    console.warn('Firestore save failed (offline?)', err);
+  }
 }

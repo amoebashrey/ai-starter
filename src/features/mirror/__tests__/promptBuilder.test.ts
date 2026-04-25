@@ -8,7 +8,7 @@ import type { Concept, DialogueTurn } from '../../../types/mirror';
 const concept: Concept = {
   id: 'llm-evals',
   label: 'LLM Evals',
-  description: 'How you measure whether an LLM is actually working correctly',
+  description: 'How you measure whether an LLM is actually working correctly', oneLineProvocation: 'Are you measuring preference or correctness?',
 };
 
 const firstUserMessage = "I think LLM evals are basically user testing for prompts.";
