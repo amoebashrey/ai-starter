@@ -2,164 +2,118 @@ import { useMirrorStore } from './mirrorStore';
 import { CONCEPTS } from './concepts';
 import type { ConceptStatus } from '../../types/mirror';
 
-interface Props {
-  onClose: () => void;
-}
+interface Props { onClose: () => void; }
 
-const STATUS_LABEL: Record<ConceptStatus, string> = {
-  cracked: 'CRACKED',
-  shaky: 'SHAKY',
-  solid: 'SOLID',
-};
-
-const STATUS_COLOR: Record<ConceptStatus, string> = {
-  cracked: 'var(--color-cracked)',
-  shaky: 'var(--color-shaky)',
-  solid: 'var(--color-solid)',
-};
-
-const STATUS_BG: Record<ConceptStatus, string> = {
-  cracked: 'var(--color-cracked-soft)',
-  shaky: 'var(--color-shaky-soft)',
-  solid: 'var(--color-solid-soft)',
-};
-
-const STATUS_NOTE: Record<ConceptStatus, string> = {
-  solid: 'Lead with these tomorrow.',
-  shaky: 'Quickly review before 10am.',
-  cracked: "If asked: it's okay to say you're still learning.",
+const COLUMN_META: Record<ConceptStatus, { label: string; pillBg: string; pillColor: string; helper: string; mastery: string }> = {
+  solid: {
+    label: 'SOLID',
+    pillBg: 'var(--color-solid-pill-bg)',
+    pillColor: 'var(--color-solid)',
+    helper: 'Lead with these tomorrow.',
+    mastery: 'MASTERY LEVEL: HIGH',
+  },
+  shaky: {
+    label: 'SHAKY',
+    pillBg: 'var(--color-shaky-pill-bg)',
+    pillColor: 'var(--color-shaky)',
+    helper: 'Quickly review before 10am.',
+    mastery: 'REVIEW RECOMMENDED',
+  },
+  cracked: {
+    label: 'CRACKED',
+    pillBg: 'var(--color-cracked-pill-bg)',
+    pillColor: 'var(--color-cracked)',
+    helper: "It's okay to say you're still learning.",
+    mastery: 'STILL LEARNING',
+  },
 };
 
 export default function CheatSheet({ onClose }: Props) {
   const { progress } = useMirrorStore();
 
-  const groupedByStatus = (status: ConceptStatus) =>
-    CONCEPTS.filter((c) => (progress[c.id]?.status ?? 'cracked') === status);
-
-  const order: ConceptStatus[] = ['solid', 'shaky', 'cracked'];
+  const grouped: Record<ConceptStatus, typeof CONCEPTS> = { solid: [], shaky: [], cracked: [] };
+  CONCEPTS.forEach((c) => {
+    const status = progress[c.id]?.status ?? 'cracked';
+    grouped[status].push(c);
+  });
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="cheatsheet-title"
-      onClick={onClose}
+    <div role="dialog" aria-modal="true" aria-label="Cheat sheet" onClick={onClose}
       style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(28, 25, 23, 0.55)',
-        backdropFilter: 'blur(8px)',
-        zIndex: 100,
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'center',
-        padding: 'var(--space-8) var(--space-6)',
-        overflowY: 'auto',
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
+        position: 'fixed', inset: 0, background: 'rgba(10, 20, 41, 0.5)',
+        zIndex: 100, overflowY: 'auto',
+      }}>
+      <div onClick={(e) => e.stopPropagation()}
         style={{
-          background: 'var(--color-bg)',
-          maxWidth: '1100px',
-          width: '100%',
-          borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--color-border)',
-          padding: 'var(--space-8)',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
-        }}
-      >
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-8)' }}>
-          <div>
-            <p style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', letterSpacing: '0.08em', margin: 0, marginBottom: 'var(--space-2)' }}>
-              TOMORROW'S CHEAT SHEET
-            </p>
-            <h2 id="cheatsheet-title" style={{ fontFamily: 'var(--font-display)', fontSize: '2.5rem', fontWeight: 400, lineHeight: 1.05, letterSpacing: '-0.02em', margin: 0 }}>
-              Here's what you actually know.
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close cheat sheet"
-            style={{
-              background: 'transparent',
-              border: '1px solid var(--color-border)',
-              borderRadius: 'var(--radius-md)',
-              padding: 'var(--space-2) var(--space-3)',
-              cursor: 'pointer',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.75rem',
-              color: 'var(--color-text-muted)',
-              letterSpacing: '0.05em',
-            }}
-          >
-            ESC ✕
-          </button>
+          background: 'var(--color-bg)', minHeight: '100vh',
+          maxWidth: '1400px', margin: '0 auto', padding: 'var(--space-10)',
+        }}>
+        {/* Top bar */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-10)' }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', color: 'var(--color-primary)' }}>Probe</div>
+          <button onClick={onClose} aria-label="Close cheat sheet"
+            style={{ background: 'transparent', border: 'none', color: 'var(--color-text)', fontSize: '1.5rem', cursor: 'pointer', padding: 'var(--space-2)' }}>×</button>
+        </div>
+
+        {/* Hero */}
+        <header style={{ marginBottom: 'var(--space-10)' }}>
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-text-muted)', letterSpacing: '0.1em', margin: 0, marginBottom: 'var(--space-3)' }}>
+            TOMORROW'S CHEAT SHEET
+          </p>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', fontWeight: 400, lineHeight: 1.05, letterSpacing: '-0.02em', margin: 0, color: 'var(--color-text)' }}>
+            Here's what you actually know.
+          </h1>
         </header>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-6)' }}>
-          {order.map((status) => {
-            const items = groupedByStatus(status);
+        {/* 3 columns */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-6)', marginBottom: 'var(--space-12)' }}>
+          {(['solid', 'shaky', 'cracked'] as ConceptStatus[]).map((status) => {
+            const meta = COLUMN_META[status];
+            const items = grouped[status];
             return (
-              <section
-                key={status}
-                aria-label={STATUS_LABEL[status] + ' concepts'}
-                style={{
-                  background: STATUS_BG[status],
-                  border: '1px solid var(--color-border)',
-                  borderRadius: 'var(--radius-md)',
-                  padding: 'var(--space-5)',
-                  minHeight: '280px',
-                }}
-              >
-                <header style={{ marginBottom: 'var(--space-4)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-1)' }}>
-                    <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: STATUS_COLOR[status] }} />
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', letterSpacing: '0.08em', color: STATUS_COLOR[status], fontWeight: 600 }}>
-                      {STATUS_LABEL[status]} ({items.length})
-                    </span>
-                  </div>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontStyle: 'italic', margin: 0 }}>
-                    {STATUS_NOTE[status]}
-                  </p>
-                </header>
+              <div key={status}>
+                <div style={{
+                  display: 'inline-block',
+                  fontFamily: 'var(--font-mono)', fontSize: '0.7rem', letterSpacing: '0.1em',
+                  color: meta.pillColor, background: meta.pillBg,
+                  padding: '4px 10px', borderRadius: 'var(--radius-sm)', fontWeight: 600,
+                  marginBottom: 'var(--space-3)',
+                }}>{meta.label}</div>
+                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: 0, marginBottom: 'var(--space-5)' }}>{meta.helper}</p>
 
-                {items.length === 0 ? (
-                  <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: 0 }}>
-                    Nothing here yet.
-                  </p>
-                ) : (
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-                    {items.map((c) => {
-                      const synth = progress[c.id]?.turns?.findLast?.((t) => t.role === 'assistant')?.content;
-                      return (
-                        <li key={c.id} style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: 'var(--space-3)' }}>
-                          <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.05rem', margin: 0, marginBottom: 'var(--space-1)' }}>
-                            {c.label}
-                          </p>
-                          {status === 'solid' && synth && (
-                            <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontStyle: 'italic', lineHeight: 1.4, margin: 0 }}>
-                              "{synth.slice(0, 140)}{synth.length > 140 ? '…' : ''}"
-                            </p>
-                          )}
-                          {status !== 'solid' && (
-                            <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', margin: 0 }}>
-                              {c.description}
-                            </p>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </section>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                  {items.length === 0 && (
+                    <p style={{ fontSize: '0.875rem', color: 'var(--color-text-subtle)', fontStyle: 'italic', margin: 0 }}>None yet.</p>
+                  )}
+                  {items.map((c) => {
+                    const synth = null;
+                    return (
+                      <article key={c.id} style={{
+                        background: 'var(--color-surface)',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: 'var(--space-5)',
+                      }}>
+                        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', fontWeight: 400, margin: 0, marginBottom: synth ? 'var(--space-3)' : 'var(--space-4)', color: 'var(--color-text)' }}>{c.label}</h3>
+                        {synth && (
+                          <p style={{ fontSize: '0.9rem', lineHeight: 1.5, color: 'var(--color-text-muted)', margin: 0, marginBottom: 'var(--space-4)' }}>{synth}</p>
+                        )}
+                        {!synth && status !== 'solid' && (
+                          <p style={{ fontSize: '0.875rem', color: 'var(--color-text-subtle)', fontStyle: 'italic', margin: 0, marginBottom: 'var(--space-4)' }}>{c.description}</p>
+                        )}
+                        <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--color-text-subtle)', letterSpacing: '0.08em', margin: 0, fontWeight: 500 }}>{meta.mastery}</p>
+                      </article>
+                    );
+                  })}
+                </div>
+              </div>
             );
           })}
         </div>
 
-        <footer style={{ marginTop: 'var(--space-8)', paddingTop: 'var(--space-5)', borderTop: '1px solid var(--color-border)', textAlign: 'center' }}>
-          <p style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: '1.1rem', color: 'var(--color-text)', margin: 0 }}>
+        {/* Footer */}
+        <footer style={{ borderTop: '1px solid var(--color-border)', paddingTop: 'var(--space-6)', textAlign: 'left' }}>
+          <p style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: '1.1rem', color: 'var(--color-text-muted)', margin: 0 }}>
             Walk in tomorrow knowing exactly what you know.
           </p>
         </footer>

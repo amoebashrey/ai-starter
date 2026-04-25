@@ -1,0 +1,15 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - build
+      - '--build-arg'
+      - 'VITE_VERTEX_API_KEY=AQ.Ab8RN6KnRWK-9LmdyH87Hnlh8-4TGw7OUl3KmonzJj35zPeQMA'
+      - '--build-arg'
+      - 'VITE_VERTEX_PROJECT=smiling-gasket-494406-p1'
+      - '--build-arg'
+      - 'VITE_VERTEX_LOCATION=global'
+      - '-t'
+      - 'asia-south1-docker.pkg.dev/smiling-gasket-494406-p1/cloud-run-source-deploy/mayas-mirror:latest'
+      - '.'
+images:
+  - 'asia-south1-docker.pkg.dev/smiling-gasket-494406-p1/cloud-run-source-deploy/mayas-mirror:latest'
