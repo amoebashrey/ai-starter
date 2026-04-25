@@ -13,6 +13,14 @@
   --color-warning: #F59E0B;
   --color-danger: #EF4444;
 
+  /* Gap map state tokens — Cracked → Shaky → Solid */
+  --color-cracked: #EF4444;
+  --color-cracked-soft: #FEF2F2;
+  --color-shaky: #F59E0B;
+  --color-shaky-soft: #FFFBEB;
+  --color-solid: #10B981;
+  --color-solid-soft: #ECFDF5;
+
   --font-display: 'Instrument Serif', Georgia, serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
