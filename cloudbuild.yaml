@@ -3,7 +3,7 @@ steps:
     args:
       - build
       - '--build-arg'
-      - 'VITE_VERTEX_API_KEY=AQ.Ab8RN6KnRWK-9LmdyH87Hnlh8-4TGw7OUl3KmonzJj35zPeQMA'
+      - 'VITE_VERTEX_API_KEY=${_VITE_VERTEX_API_KEY}'
       - '--build-arg'
       - 'VITE_VERTEX_PROJECT=smiling-gasket-494406-p1'
       - '--build-arg'

@@ -76,9 +76,6 @@ export default function Mirror() {
 
       {/* Hero */}
       <header style={{ padding: 'var(--space-12) var(--space-10) var(--space-10)', maxWidth: '1400px', margin: '0 auto' }}>
-        <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-text-muted)', letterSpacing: '0.1em', margin: 0, marginBottom: 'var(--space-3)' }}>
-          9:00 PM — TOMORROW AT 10:00 AM
-        </p>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2.5rem, 5vw, 3.75rem)', fontWeight: 400, lineHeight: 1.05, letterSpacing: '-0.02em', margin: 0, color: 'var(--color-text)' }}>
           What do you actually understand?
         </h1>
@@ -97,13 +94,22 @@ export default function Mirror() {
                     style={{
                       width: '100%', textAlign: 'left',
                       padding: 'var(--space-4) var(--space-5)',
-                      background: isActive ? 'var(--color-primary)' : 'transparent',
+                      background: isActive
+                        ? 'var(--color-primary)'
+                        : 'rgba(255, 255, 255, 0.55)',
+                      backdropFilter: isActive ? 'none' : 'blur(12px) saturate(120%)',
+                      WebkitBackdropFilter: isActive ? 'none' : 'blur(12px) saturate(120%)',
                       color: isActive ? 'var(--color-bg)' : 'var(--color-text)',
-                      border: '1px solid ' + (isActive ? 'var(--color-primary)' : 'var(--color-border)'),
+                      border: '1px solid ' + (isActive
+                        ? 'var(--color-primary)'
+                        : 'rgba(10, 31, 68, 0.08)'),
+                      boxShadow: isActive
+                        ? 'none'
+                        : '0 1px 3px rgba(10, 31, 68, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
                       borderRadius: 'var(--radius-md)', cursor: 'pointer',
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                       fontSize: '0.95rem', fontWeight: isActive ? 500 : 400,
-                      transition: 'all 0.15s',
+                      transition: 'all 0.18s ease',
                     }}>
                     <span>{c.label}</span>
                     {isActive && <span style={{ fontSize: '0.75rem' }}>→</span>}
